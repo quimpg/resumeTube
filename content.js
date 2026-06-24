@@ -1,17 +1,17 @@
 "use strict";
 
-// Content script para páginas /watch de YouTube.
-// - Inyecta un panel con un botón "Resumir vídeo".
-// - Extrae la transcripción desde el div .ytSectionListRendererContents.
-// - Pide el resumen al service worker y lo muestra en el panel.
+// Content script for YouTube /watch pages.
+// - Injects a panel with a "Summarize video" button.
+// - Extracts the transcript from the .ytSectionListRendererContents div.
+// - Asks the service worker for the summary and shows it in the panel.
 
 (() => {
   const PANEL_ID = "yt-resume-panel";
-  const MAX_CHARS = 48000; // tope de seguridad para la longitud de la transcripción
+  const MAX_CHARS = 48000; // safety cap for the transcript length
 
   const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 
-  // ---------- helpers de DOM ----------
+  // ---------- DOM helpers ----------
 
   function findByAriaLabel(regex) {
     for (const el of document.querySelectorAll("[aria-label]")) {
@@ -31,7 +31,7 @@
     }[c]));
   }
 
-  // ---------- extracción de la transcripción ----------
+  // ---------- transcript extraction ----------
 
   function readSegments() {
     const container =
@@ -56,12 +56,12 @@
       return lines.join(" ");
     }
 
-    // Fallback: texto plano del contenedor.
+    // Fallback: plain text of the container.
     return (container.innerText || "").replace(/\s+/g, " ").trim();
   }
 
   async function openTranscriptPanel() {
-    // Expandir la descripción para revelar el botón "Mostrar transcripción".
+    // Expand the description to reveal the "Show transcript" button.
     const expand = document.querySelector(
       "#description #expand, tp-yt-paper-button#expand, #expand"
     );
@@ -69,6 +69,8 @@
       expand.click();
       await sleep(400);
     }
+    // Match YouTube's button whatever its UI language (EN "transcript",
+    // ES "transcripción", etc.).
     const btn = findByAriaLabel(/transcript|transcripci/i);
     if (btn) {
       btn.click();
@@ -94,7 +96,7 @@
     return waitForSegments(8000);
   }
 
-  // ---------- comunicación con el service worker ----------
+  // ---------- communication with the service worker ----------
 
   function requestSummary(transcript) {
     return new Promise((resolve) => {
@@ -149,8 +151,8 @@
 
   function showNeedKey() {
     setResult(
-      `<p class="ytr-error">Falta tu API key de OpenAI. ` +
-        `<a href="#" class="ytr-open-options">Configúrala en Opciones</a>.</p>`
+      `<p class="ytr-error">Your OpenAI API key is missing. ` +
+        `<a href="#" class="ytr-open-options">Set it in Options</a>.</p>`
     );
     const link = document.querySelector(`#${PANEL_ID} .ytr-open-options`);
     if (link) {
@@ -166,15 +168,15 @@
     if (busy) return;
     busy = true;
     setResult("");
-    setStatus("Extrayendo transcripción…");
+    setStatus("Extracting transcript…");
     try {
       let transcript = await getTranscript();
       if (!transcript) {
         setStatus("");
         setResult(
-          `<p class="ytr-error">No se encontró la transcripción. Abre ` +
-            `"Mostrar transcripción" en el vídeo y vuelve a intentarlo. ` +
-            `Si el vídeo no tiene subtítulos, no es posible resumirlo.</p>`
+          `<p class="ytr-error">Transcript not found. Open ` +
+            `"Show transcript" on the video and try again. ` +
+            `If the video has no captions, it can't be summarized.</p>`
         );
         return;
       }
@@ -185,7 +187,7 @@
         truncated = true;
       }
 
-      setStatus("Generando resumen con OpenAI…");
+      setStatus("Generating summary with OpenAI…");
       const resp = await requestSummary(transcript);
 
       if (!resp || !resp.ok) {
@@ -195,7 +197,7 @@
         } else {
           setResult(
             `<p class="ytr-error">${escapeHtml(
-              (resp && resp.error) || "Error desconocido"
+              (resp && resp.error) || "Unknown error"
             )}</p>`
           );
         }
@@ -204,8 +206,8 @@
 
       setStatus(
         truncated
-          ? "Resumen generado (transcripción truncada por longitud)."
-          : "Resumen generado."
+          ? "Summary generated (transcript truncated due to length)."
+          : "Summary generated."
       );
       setResult(renderSummary(resp.summary));
     } catch (e) {
@@ -221,10 +223,10 @@
     panel.id = PANEL_ID;
     panel.innerHTML = `
       <div class="ytr-header">
-        <span class="ytr-title">📝 Resumen IA</span>
-        <button class="ytr-settings" title="Opciones" type="button">⚙️</button>
+        <span class="ytr-title">📝 AI Summary</span>
+        <button class="ytr-settings" title="Options" type="button">⚙️</button>
       </div>
-      <button class="ytr-btn" type="button">Resumir vídeo</button>
+      <button class="ytr-btn" type="button">Summarize video</button>
       <div class="ytr-status"></div>
       <div class="ytr-result"></div>
     `;
@@ -247,7 +249,7 @@
     host.prepend(buildPanel());
   }
 
-  // YouTube es una SPA: re-inyectar al navegar y cuando cambia el DOM.
+  // YouTube is an SPA: re-inject on navigation and when the DOM changes.
   window.addEventListener("yt-navigate-finish", () =>
     setTimeout(ensurePanel, 500)
   );

@@ -1,9 +1,9 @@
 <!DOCTYPE html>
-<html lang="es">
+<html lang="en">
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>YouTube Resume — Opciones</title>
+    <title>YouTube Resume — Options</title>
     <style>
       body {
         font-family: system-ui, "Roboto", sans-serif;
@@ -46,24 +46,24 @@
     </style>
   </head>
   <body>
-    <h1>YouTube Resume — Opciones</h1>
+    <h1>YouTube Resume — Options</h1>
 
     <label for="apiKey">OpenAI API key</label>
     <input id="apiKey" type="password" placeholder="sk-..." autocomplete="off" />
     <div class="hint">
-      Tu key se guarda solo en este navegador (chrome.storage.local) y se usa
-      para llamar a la API de OpenAI.
+      Your key is stored only in this browser (chrome.storage.local) and is used
+      to call the OpenAI API.
     </div>
 
-    <label for="model">Modelo</label>
+    <label for="model">Model</label>
     <select id="model">
-      <option value="gpt-4o-mini">gpt-4o-mini (barato y rápido)</option>
-      <option value="gpt-4o">gpt-4o (mayor calidad)</option>
+      <option value="gpt-4o-mini">gpt-4o-mini (cheap and fast)</option>
+      <option value="gpt-4o">gpt-4o (higher quality)</option>
     </select>
 
     <div>
-      <button id="save" type="button">Guardar</button>
-      <span class="saved" id="saved" hidden>Guardado ✓</span>
+      <button id="save" type="button">Save</button>
+      <span class="saved" id="saved" hidden>Saved ✓</span>
     </div>
 
     <script src="options.js"></script>

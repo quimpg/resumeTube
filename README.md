@@ -9,8 +9,8 @@ column.
 ## Features
 
 - 🎯 **"Summarize video"** button integrated into the YouTube page.
-- 📝 Concise summary structured as key bullet points (in Spanish by default —
-  easy to change in `background.js`).
+- 📝 Concise summary structured as key bullet points (in English by default —
+  change the prompt in `background.js` for another language).
 - 🤖 Powered by the OpenAI API (`gpt-4o-mini` by default, `gpt-4o` optional).
 - 🔑 Your **API key is stored only in your browser** (`chrome.storage.local`).
 - 🧭 Works with YouTube's in-app (SPA) navigation: the panel reappears when you
@@ -41,7 +41,7 @@ column.
 ## Usage
 
 1. Open any YouTube video (`youtube.com/watch?...`).
-2. In the right-hand column you'll see the **📝 Resumen IA** panel.
+2. In the right-hand column you'll see the **📝 AI Summary** panel.
 3. Click **Summarize video**.
    - If you get *"transcript not found"*, open *"Show transcript"* on the video
      manually and click the button again.

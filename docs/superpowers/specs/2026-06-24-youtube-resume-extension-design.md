@@ -1,101 +1,104 @@
 # YouTube Resume — Chrome Extension Design
 
-**Fecha:** 2026-06-24
-**Estado:** Aprobado (diseño)
+**Date:** 2026-06-24
+**Status:** Approved (design)
 
-## Objetivo
+## Goal
 
-Extensión de Chrome (Manifest V3) que, en una página de vídeo de YouTube,
-extrae la transcripción y genera un resumen en español (con bullets) usando la
-API de OpenAI (`gpt-4o-mini` por defecto). El resumen se muestra en un panel
-inyectado en la propia página, junto al vídeo.
+A Chrome extension (Manifest V3) that, on a YouTube video page, extracts the
+transcript and generates a summary with bullet points using the OpenAI API
+(`gpt-4o-mini` by default). The summary is shown in a panel injected into the
+page itself, next to the video.
 
-## Decisiones tomadas
+## Decisions made
 
-| Decisión | Elección |
-|----------|----------|
-| Dónde se muestra el resumen | Panel inyectado en la página de YouTube |
-| Idioma y formato del resumen | Español, con bullets (puntos clave) |
-| Modelo OpenAI por defecto | `gpt-4o-mini` |
-| API key | La introduce el usuario en la página de Opciones; se guarda en `chrome.storage.local` |
-| Disparador | Manual: botón "Resumir vídeo" |
+| Decision | Choice |
+|----------|--------|
+| Where the summary is shown | Panel injected into the YouTube page |
+| Summary format | Bullet points (key takeaways) |
+| Default OpenAI model | `gpt-4o-mini` |
+| API key | Entered by the user on the Options page; stored in `chrome.storage.local` |
+| Trigger | Manual: "Summarize video" button |
 
-## Origen de la transcripción
+## Transcript source
 
-El contenido de la transcripción vive dentro del div con clase
-`ytSectionListRendererContents` (panel de transcripción de YouTube). Los
-segmentos individuales son elementos `ytd-transcript-segment-renderer`.
+The transcript content lives inside the div with class
+`ytSectionListRendererContents` (YouTube's transcript panel). The individual
+segments are `ytd-transcript-segment-renderer` elements.
 
-La extensión usa la sesión del navegador del usuario tal cual (ya está logeado);
-no gestiona login. Lee el DOM que el usuario ya ve.
+The extension uses the user's existing browser session as-is (already logged in);
+it does not manage login. It reads the DOM the user already sees.
 
-## Arquitectura (Manifest V3)
+## Architecture (Manifest V3)
 
-Cuatro piezas con responsabilidades aisladas:
+Four pieces with isolated responsibilities:
 
-### 1. `content.js` (content script en `*://*.youtube.com/watch*`)
-- Inyecta el botón **"Resumir vídeo"** y un panel de resultado en la página.
-- **Extrae la transcripción:**
-  1. Busca el panel de transcripción (`ytSectionListRendererContents`).
-  2. Si no está abierto, intenta abrirlo programáticamente (clic en el botón
-     "Mostrar transcripción" / "Show transcript").
-  3. Lee y concatena el texto de los segmentos
+### 1. `content.js` (content script on `*://*.youtube.com/*`)
+- Injects the **"Summarize video"** button and a result panel into the page.
+- **Extracts the transcript:**
+  1. Looks for the transcript panel (`ytSectionListRendererContents`).
+  2. If it is not open, tries to open it programmatically (clicks the
+     "Show transcript" button).
+  3. Reads and concatenates the segment text
      (`ytd-transcript-segment-renderer`).
-- Envía la transcripción al service worker vía `chrome.runtime.sendMessage`.
-- Pinta el resumen recibido (o el error) en el panel.
+- Sends the transcript to the service worker via `chrome.runtime.sendMessage`.
+- Renders the received summary (or error) in the panel.
+
+> Note: the content script matches all of `youtube.com` and filters for
+> `/watch` internally, so it survives YouTube's SPA navigation (clicking into a
+> video from the homepage does not trigger a full page load).
 
 ### 2. `background.js` (service worker)
-- Recibe la transcripción.
-- Lee `apiKey` y `model` de `chrome.storage.local`.
-- Llama a `https://api.openai.com/v1/chat/completions` con un prompt de sistema
-  que pide un resumen en español con bullets.
-- Devuelve el resumen (o un error legible) al content script.
-- **Por qué aquí y no en el content script:** evita problemas de CORS y mantiene
-  la API key fuera del contexto de la página web.
+- Receives the transcript.
+- Reads `apiKey` and `model` from `chrome.storage.local`.
+- Calls `https://api.openai.com/v1/chat/completions` with a system prompt asking
+  for a summary with bullet points.
+- Returns the summary (or a readable error) to the content script.
+- **Why here and not in the content script:** avoids CORS issues and keeps the
+  API key out of the web page context.
 
 ### 3. `options.html` + `options.js`
-- Formulario para guardar la **API key de OpenAI** y (opcional) seleccionar el
-  modelo.
-- Persiste en `chrome.storage.local`.
+- Form to save the **OpenAI API key** and (optionally) select the model.
+- Persists to `chrome.storage.local`.
 
-### 4. `manifest.json` + `content.css` + iconos
+### 4. `manifest.json` + `content.css` + icons
 - `manifest_version: 3`.
 - `host_permissions`: `https://api.openai.com/*`.
 - `permissions`: `storage`.
-- `content_scripts` en las URLs de YouTube watch, con `content.css`.
+- `content_scripts` on YouTube pages, with `content.css`.
 - `background.service_worker`: `background.js`.
 - `options_page`: `options.html`.
 
-## Flujo de datos
+## Data flow
 
 ```
-Clic "Resumir vídeo"
-  → content.js extrae transcripción del DOM (ytSectionListRendererContents)
-  → chrome.runtime.sendMessage(transcripción)
-  → background.js lee apiKey/model de storage
-  → POST a OpenAI /v1/chat/completions
-  → resumen
-  → respuesta a content.js
-  → render en el panel inyectado
+Click "Summarize video"
+  → content.js extracts the transcript from the DOM (ytSectionListRendererContents)
+  → chrome.runtime.sendMessage(transcript)
+  → background.js reads apiKey/model from storage
+  → POST to OpenAI /v1/chat/completions
+  → summary
+  → response to content.js
+  → render in the injected panel
 ```
 
-## Manejo de errores
+## Error handling
 
-| Caso | Comportamiento |
-|------|----------------|
-| Sin API key configurada | Panel avisa y enlaza a la página de Opciones |
-| No se encuentra transcripción / vídeo sin subtítulos | Mensaje claro pidiendo abrir la transcripción manualmente |
-| Error de la API (key inválida, sin saldo, rate limit) | Muestra el mensaje de error de OpenAI |
-| Transcripción muy larga (supera umbral de caracteres) | Se trunca con un aviso visible en el panel |
+| Case | Behavior |
+|------|----------|
+| No API key configured | Panel warns and links to the Options page |
+| Transcript not found / video without captions | Clear message asking to open the transcript manually |
+| API error (invalid key, no credit, rate limit) | Shows the OpenAI error message |
+| Very long transcript (over the character cap) | Truncated with a visible notice in the panel |
 
-## Fuera de alcance (v1) — YAGNI
+## Out of scope (v1) — YAGNI
 
-- Chunking / map-reduce para vídeos extremadamente largos.
-- Historial de resúmenes y exportación.
-- Selección de idioma de salida configurable (fijado a español en v1).
-- Resumen automático al cargar el vídeo (v1 es manual).
+- Chunking / map-reduce for extremely long videos.
+- Summary history and export.
+- Configurable output language (the prompt sets the language in v1).
+- Automatic summary on video load (v1 is manual).
 
-## Estructura de archivos prevista
+## Planned file structure
 
 ```
 manifest.json

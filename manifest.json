@@ -2,13 +2,13 @@
   "manifest_version": 3,
   "name": "YouTube Resume",
   "version": "1.0.0",
-  "description": "Extrae la transcripción de un vídeo de YouTube y genera un resumen en español con OpenAI.",
+  "description": "Extracts a YouTube video's transcript and generates a summary using OpenAI.",
   "permissions": ["storage"],
   "host_permissions": ["https://api.openai.com/*"],
   "background": { "service_worker": "background.js" },
   "options_page": "options.html",
   "action": {
-    "default_title": "YouTube Resume — Opciones",
+    "default_title": "YouTube Resume — Options",
     "default_icon": {
       "16": "icons/icon16.png",
       "48": "icons/icon48.png",

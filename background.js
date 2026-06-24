@@ -1,18 +1,18 @@
 "use strict";
 
-// Service worker: recibe la transcripción del content script, llama a OpenAI
-// y devuelve el resumen. Hacemos la llamada aquí (no en el content script)
-// para evitar problemas de CORS y mantener la API key fuera de la página.
+// Service worker: receives the transcript from the content script, calls OpenAI
+// and returns the summary. We make the call here (not in the content script) to
+// avoid CORS issues and to keep the API key out of the web page.
 
 const OPENAI_URL = "https://api.openai.com/v1/chat/completions";
 const DEFAULT_MODEL = "gpt-4o-mini";
 
 const SYSTEM_PROMPT =
-  "Eres un asistente que resume transcripciones de vídeos de YouTube. " +
-  "Devuelve un resumen claro y conciso EN ESPAÑOL. " +
-  "Empieza con una sola frase que diga de qué trata el vídeo y, a continuación, " +
-  "lista los puntos clave como bullets usando un guion (-) al inicio de cada línea. " +
-  "No inventes información que no esté en la transcripción.";
+  "You are an assistant that summarizes YouTube video transcripts. " +
+  "Return a clear, concise summary IN ENGLISH. " +
+  "Start with a single sentence stating what the video is about, then " +
+  "list the key points as bullets, using a hyphen (-) at the start of each line. " +
+  "Do not invent information that is not in the transcript.";
 
 chrome.runtime.onMessage.addListener((msg, _sender, sendResponse) => {
   if (msg && msg.type === "OPEN_OPTIONS") {
@@ -23,22 +23,22 @@ chrome.runtime.onMessage.addListener((msg, _sender, sendResponse) => {
     summarize(msg.transcript)
       .then(sendResponse)
       .catch((e) => sendResponse({ ok: false, error: e.message || String(e) }));
-    return true; // respuesta asíncrona
+    return true; // asynchronous response
   }
   return false;
 });
 
-// Al clicar el icono de la barra, abrir las opciones (no hay popup).
+// Clicking the toolbar icon opens the options page (there is no popup).
 chrome.action.onClicked.addListener(() => chrome.runtime.openOptionsPage());
 
 async function summarize(transcript) {
   if (!transcript || !transcript.trim()) {
-    return { ok: false, error: "La transcripción está vacía." };
+    return { ok: false, error: "The transcript is empty." };
   }
 
   const { apiKey, model } = await chrome.storage.local.get(["apiKey", "model"]);
   if (!apiKey) {
-    return { ok: false, needKey: true, error: "Falta la API key de OpenAI." };
+    return { ok: false, needKey: true, error: "Missing OpenAI API key." };
   }
 
   const body = {
@@ -46,7 +46,7 @@ async function summarize(transcript) {
     temperature: 0.3,
     messages: [
       { role: "system", content: SYSTEM_PROMPT },
-      { role: "user", content: "Resume esta transcripción:\n\n" + transcript },
+      { role: "user", content: "Summarize this transcript:\n\n" + transcript },
     ],
   };
 
@@ -61,7 +61,7 @@ async function summarize(transcript) {
       body: JSON.stringify(body),
     });
   } catch (e) {
-    return { ok: false, error: "No se pudo conectar con OpenAI: " + (e.message || e) };
+    return { ok: false, error: "Could not connect to OpenAI: " + (e.message || e) };
   }
 
   if (!res.ok) {
@@ -83,7 +83,7 @@ async function summarize(transcript) {
   try {
     data = await res.json();
   } catch (e) {
-    return { ok: false, error: "Respuesta no válida de OpenAI." };
+    return { ok: false, error: "Invalid response from OpenAI." };
   }
 
   const summary =
@@ -92,7 +92,7 @@ async function summarize(transcript) {
       : "";
 
   if (!summary) {
-    return { ok: false, error: "OpenAI devolvió una respuesta vacía." };
+    return { ok: false, error: "OpenAI returned an empty response." };
   }
 
   return { ok: true, summary };
