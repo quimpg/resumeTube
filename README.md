@@ -1,98 +1,97 @@
 # YouTube Resume
 
-Extensión de Chrome (Manifest V3) que extrae la transcripción de un vídeo de
-YouTube y genera un **resumen en español con bullets** usando la API de OpenAI.
+A Chrome extension (Manifest V3) that extracts a YouTube video's transcript and
+generates a **summary with bullet points** using the OpenAI API.
 
-El resumen aparece en un panel inyectado junto al vídeo, en la columna derecha.
+The summary appears in a panel injected next to the video, in the right-hand
+column.
 
-## Características
+## Features
 
-- 🎯 Botón **"Resumir vídeo"** integrado en la página de YouTube.
-- 📝 Resumen en **español**, estructurado en puntos clave.
-- 🤖 Usa la API de OpenAI (`gpt-4o-mini` por defecto, `gpt-4o` opcional).
-- 🔑 Tu **API key se guarda solo en tu navegador** (`chrome.storage.local`).
-- 🧭 Funciona con la navegación interna de YouTube (SPA): el panel reaparece al
-  cambiar de vídeo sin recargar.
-- 🪄 Intenta abrir la transcripción automáticamente; si no puede, te avisa para
-  que la abras a mano.
+- 🎯 **"Summarize video"** button integrated into the YouTube page.
+- 📝 Concise summary structured as key bullet points (in Spanish by default —
+  easy to change in `background.js`).
+- 🤖 Powered by the OpenAI API (`gpt-4o-mini` by default, `gpt-4o` optional).
+- 🔑 Your **API key is stored only in your browser** (`chrome.storage.local`).
+- 🧭 Works with YouTube's in-app (SPA) navigation: the panel reappears when you
+  switch videos without reloading.
+- 🪄 Tries to open the transcript automatically; if it can't, it tells you to
+  open it manually.
 
-## Instalación (modo desarrollador)
+## Installation (developer mode)
 
-1. Descarga o clona este repositorio:
+1. Download or clone this repository:
    ```bash
    git clone git@github.com:quimpg/resumeTube.git
    ```
-2. Abre Chrome y ve a `chrome://extensions`.
-3. Activa el **Modo de desarrollador** (arriba a la derecha).
-4. Pulsa **Cargar descomprimida** y selecciona la carpeta del repositorio.
-5. La extensión "YouTube Resume" aparecerá en la lista.
+2. Open Chrome and go to `chrome://extensions`.
+3. Enable **Developer mode** (top right).
+4. Click **Load unpacked** and select the repository folder.
+5. The "YouTube Resume" extension will appear in the list.
 
-## Configuración
+## Configuration
 
-1. Haz clic en el icono de la extensión en la barra (o botón derecho →
-   *Opciones*).
-2. Pega tu **API key de OpenAI** (`sk-...`) y elige el modelo.
-3. Pulsa **Guardar**.
+1. Click the extension icon in the toolbar (or right-click → *Options*).
+2. Paste your **OpenAI API key** (`sk-...`) and pick the model.
+3. Click **Save**.
 
-> Necesitas una cuenta de OpenAI con API habilitada. Puedes crear tu key en
+> You need an OpenAI account with API access enabled. Create your key at
 > https://platform.openai.com/api-keys
 
-## Uso
+## Usage
 
-1. Abre cualquier vídeo de YouTube (`youtube.com/watch?...`).
-2. En la columna de la derecha verás el panel **📝 Resumen IA**.
-3. Pulsa **Resumir vídeo**.
-   - Si aparece *"No se encontró la transcripción"*, abre manualmente
-     *"Mostrar transcripción"* en el vídeo y vuelve a pulsar el botón.
-4. El resumen en español aparece en el panel.
+1. Open any YouTube video (`youtube.com/watch?...`).
+2. In the right-hand column you'll see the **📝 Resumen IA** panel.
+3. Click **Summarize video**.
+   - If you get *"transcript not found"*, open *"Show transcript"* on the video
+     manually and click the button again.
+4. The summary appears in the panel.
 
-## Privacidad
+## Privacy
 
-- La **API key** se almacena únicamente en tu navegador
-  (`chrome.storage.local`); no se envía a ningún sitio salvo a la propia API de
-  OpenAI en las cabeceras de la petición.
-- Al pulsar "Resumir vídeo", el **texto de la transcripción se envía a OpenAI**
-  para generar el resumen. Revisa la política de uso de datos de OpenAI si esto
-  es relevante para ti.
-- La extensión no recopila ni envía datos a terceros distintos de OpenAI.
+- The **API key** is stored only in your browser (`chrome.storage.local`); it is
+  never sent anywhere except to the OpenAI API itself in the request headers.
+- When you click "Summarize video", the **transcript text is sent to OpenAI** to
+  generate the summary. Review OpenAI's data usage policy if this matters to you.
+- The extension does not collect or send data to any third party other than
+  OpenAI.
 
-## Cómo funciona
-
-```
-Clic "Resumir vídeo"
-  → content.js extrae la transcripción del DOM (.ytSectionListRendererContents)
-  → mensaje al service worker (background.js)
-  → POST a https://api.openai.com/v1/chat/completions
-  → resumen
-  → render en el panel inyectado
-```
-
-La llamada a OpenAI se hace desde el **service worker** (no desde el content
-script) para evitar problemas de CORS y mantener la API key fuera del contexto
-de la página web.
-
-## Limitaciones
-
-- El vídeo debe tener **transcripción/subtítulos** disponibles.
-- Las transcripciones muy largas se **truncan** automáticamente (tope de
-  seguridad) y se avisa en el panel.
-- Los selectores del DOM de YouTube cambian con el tiempo; si YouTube actualiza
-  su interfaz, la extracción podría necesitar un ajuste.
-- El coste de cada resumen corre por tu cuenta de OpenAI según el modelo
-  elegido.
-
-## Estructura
+## How it works
 
 ```
-manifest.json     Configuración de la extensión (MV3)
-background.js     Service worker: llama a la API de OpenAI
-content.js        Inyecta el panel y extrae la transcripción del DOM
-content.css       Estilos del panel
-options.html/js   Página de opciones (API key y modelo)
-icons/            Iconos de la extensión
-docs/             Spec de diseño
+Click "Summarize video"
+  → content.js extracts the transcript from the DOM (.ytSectionListRendererContents)
+  → message to the service worker (background.js)
+  → POST to https://api.openai.com/v1/chat/completions
+  → summary
+  → rendered in the injected panel
 ```
 
-## Licencia
+The OpenAI call is made from the **service worker** (not the content script) to
+avoid CORS issues and to keep the API key out of the web page context.
+
+## Limitations
+
+- The video must have a **transcript/captions** available.
+- Very long transcripts are **truncated** automatically (safety cap) and a
+  notice is shown in the panel.
+- YouTube's DOM selectors change over time; if YouTube updates its UI, the
+  extraction may need an adjustment.
+- The cost of each summary is billed to your own OpenAI account based on the
+  chosen model.
+
+## Project structure
+
+```
+manifest.json     Extension configuration (MV3)
+background.js     Service worker: calls the OpenAI API
+content.js        Injects the panel and extracts the transcript from the DOM
+content.css       Panel styles
+options.html/js   Options page (API key and model)
+icons/            Extension icons
+docs/             Design spec
+```
+
+## License
 
 [MIT](LICENSE) © quimpg
